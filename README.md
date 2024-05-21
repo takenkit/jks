@@ -17,7 +17,7 @@ learning
 └── 04_integration_and_testing
 ```
 
-### 詳細説明
+### フォルダ概要 
 
 #### 01_multithreading
 - **01_basic_thread_creation**:
