@@ -10,6 +10,27 @@
 #define SERVER_PORT     50001
 #define MAX_BUFFER_SIZE 1024
 
+int get_line(char *buffer, int buffer_size)
+{
+    int length;
+
+    memset(buffer, 0, buffer_size);
+    if (fgets(buffer, buffer_size, stdin) == NULL) {
+        perror("fgets() failed");
+        return 0;
+    }
+
+    length = strlen(buffer);
+    if (length == buffer_size - 1) {
+        char c;
+        while ((c = getchar()) != '\n' && c != EOF);
+        buffer[length - 2] = '\n';
+        buffer[length - 1] = '\0';
+    }
+
+    return length;
+}
+
 int main(void)
 {
     int sock;
@@ -36,23 +57,17 @@ int main(void)
     while (1) {
         printf("Please enter the characters:");
 
-        memset(send_buffer, 0, sizeof(send_buffer));
-        if (fgets(send_buffer, sizeof(send_buffer), stdin) == NULL) {
-            perror("fgets() failed");
+        length = get_line(send_buffer, sizeof(send_buffer));
+        if (length < 0) {
             break;
-        }
-
-        length = strlen(send_buffer);
-        if (length == MAX_BUFFER_SIZE - 1) {
-            char c;
-            while ((c = getchar()) != '\n' && c != EOF);
-            send_buffer[length - 2] = '\n';
-            send_buffer[length - 1] = '\0';
         }
 
         send_size = send(sock, send_buffer, length, 0);
         if (send_size < 0) {
             perror("send() failed");
+            break;
+        } else if (send_size == 0) {
+            printf("connection closed\n");
             break;
         }
 
@@ -62,6 +77,9 @@ int main(void)
         recv_size = recv(sock, recv_buffer, sizeof(recv_buffer), 0);
         if (recv_size < 0) {
             perror("recv() failed");
+            break;
+        } else if (recv_size == 0) {
+            printf("connection closed\n");
             break;
         }
 
