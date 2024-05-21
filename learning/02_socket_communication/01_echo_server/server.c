@@ -47,17 +47,17 @@ int main(void)
         printf("connected from %s\n", inet_ntoa(client_addr.sin_addr));
         
         while (1) {
-            memset(buffer, 0, MAX_BUFFER_SIZE);
-            recv_size = recv(client_sock, buffer, MAX_BUFFER_SIZE, 0);
+            memset(buffer, 0, sizeof(buffer));
+            recv_size = recv(client_sock, buffer, sizeof(buffer), 0);
             if (recv_size < 0) {
                 perror("recv() failed");
                 break;
             } else if (recv_size == 0) {
                 printf("connection closed\n");
                 break;
+            } else {
+                printf("receive:%s", buffer);
             }
-
-            printf("receive:%s", buffer);
 
             send_size = send(client_sock, buffer, recv_size, 0);
             if (send_size < 0) {
@@ -66,9 +66,9 @@ int main(void)
             } else if (send_size == 0) {
                 printf("connection closed\n");
                 break;
+            } else {
+                printf("send:%s", buffer);
             }
-
-            printf("send:%s", buffer);
         }
 
         close(client_sock);

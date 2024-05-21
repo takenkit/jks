@@ -58,7 +58,7 @@ int main(void)
         printf("Please enter the characters:");
 
         length = get_line(send_buffer, sizeof(send_buffer));
-        if (length <= 0) {
+        if (length == 0) {
             break;
         }
 
@@ -69,9 +69,9 @@ int main(void)
         } else if (send_size == 0) {
             printf("connection closed\n");
             break;
+        } else {
+            printf("send:%s", send_buffer);
         }
-
-        printf("send:%s", send_buffer);
 
         memset(recv_buffer, 0, sizeof(recv_buffer));
         recv_size = recv(sock, recv_buffer, sizeof(recv_buffer), 0);
@@ -81,9 +81,9 @@ int main(void)
         } else if (recv_size == 0) {
             printf("connection closed\n");
             break;
+        } else {
+            printf("receive:%s", recv_buffer);
         }
-
-        printf("receive:%s", recv_buffer);
     }
 
     close(sock);
