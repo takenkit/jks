@@ -58,7 +58,7 @@ int main(void)
         printf("Please enter the characters:");
 
         length = get_line(send_buffer, sizeof(send_buffer));
-        if (length < 0) {
+        if (length <= 0) {
             break;
         }
 
