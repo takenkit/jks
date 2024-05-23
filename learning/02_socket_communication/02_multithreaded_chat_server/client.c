@@ -56,7 +56,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+
     // ユーザー認証（ユーザー名の送信）
+    printf("Welcome to the chat server!\n");
     printf("Please enter your username: ");
     get_line(message.from_user, sizeof(message.from_user));
     strncpy(message.command, "auth", sizeof(message.command) - 1);
@@ -71,9 +73,12 @@ int main(int argc, char *argv[])
     recv_size = recv_data(socket, &message, sizeof(ChatMessage));
     if (recv_size <= 0 || strncmp(message.command, "auth_ok", 7) != 0) {
         perror("Authentication failed");
+        perror(message.message);
         close(socket);
         exit(EXIT_FAILURE);
     }
+
+    printf("%s", message.message);
 
     while (1) {
         FD_ZERO(&readfds);
@@ -87,8 +92,7 @@ int main(int argc, char *argv[])
         }
 
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-            printf("Please enter the characters:");
-
+            //printf("Please enter the characters:");
             length = get_line(message.message, sizeof(message.message));
             if (length == 0) {
                 break;
@@ -117,7 +121,7 @@ int main(int argc, char *argv[])
                     perror("recv() failed");
                     break;
                 } else if (recv_size == 0) {
-                    printf("connection closed\n");
+                    printf("Connection closed\n");
                     break;
                 } else {
                     printf("%s", message.message);
@@ -137,10 +141,10 @@ int main(int argc, char *argv[])
                     perror("send() failed");
                     break;
                 } else if (send_size == 0) {
-                    printf("connection closed\n");
+                    printf("Connection closed\n");
                     break;
                 } else {
-                    printf("send: %s", message.message);
+                    printf("Send: %s", message.message);
                 }
             }
         }
@@ -152,10 +156,10 @@ int main(int argc, char *argv[])
                 perror("recv() failed");
                 break;
             } else if (recv_size == 0) {
-                printf("connection closed\n");
+                printf("Connection closed\n");
                 break;
             } else {
-                printf("receive: %s", message.message);
+                printf("Receive: %s", message.message);
             }
         }
     }

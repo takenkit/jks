@@ -102,7 +102,7 @@ void send_user_list(int client_socket)
     strcpy(message.command, "list");
 
     pthread_mutex_lock(&user_list_mutex);
-    strcpy(message.message, "connected users:\n");
+    strcpy(message.message, "Connected users:\n");
     for (int i = 0; i < MAX_CLIENTS; ++i) {
         if (connected_users[i][0] != '\0') {
             strcat(message.message, "- ");
@@ -143,7 +143,7 @@ void send_message_history(int client_socket)
         ChatMessage message;
         memset(&message, 0, sizeof(ChatMessage));
         strcpy(message.command, "history");
-        strcpy(message.message, "failed to open history file\n");
+        strcpy(message.message, "Failed to open history file\n");
         send_data(client_socket, &message, sizeof(ChatMessage));
         pthread_mutex_unlock(&chat_history_mutex);
         return;
@@ -187,12 +187,12 @@ void *handle_client(void *arg)
         return NULL;
     }
     strncpy(username, message.from_user, sizeof(username) - 1);
-    username[sizeof(username) - 1] = '\0';
+    username[strlen(username)- 1] = '\0';
 
     // ユーザー名の重複チェック
     if (is_username_duplicate(username)) {
         strcpy(message.command, "error");
-        strcpy(message.message, "username already taken. Please choose another one.\n");
+        strcpy(message.message, "Username already taken. Please choose another one.\n");
         send_data(client_socket, &message, sizeof(ChatMessage));
         close(client_socket);
         return NULL;
@@ -203,6 +203,7 @@ void *handle_client(void *arg)
 
     // 認証成功メッセージの送信
     strcpy(message.command, "auth_ok");
+    sprintf(message.message, "Hello %s!\n", username);
     send_data(client_socket, &message, sizeof(ChatMessage));
 
     // メインループでメッセージの送受信を処理
