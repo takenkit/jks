@@ -11,40 +11,25 @@
 
 ```c
 typedef struct {
-    unsigned int sequence;       // 4バイト: シーケンス番号
-    unsigned int from_port;      // 4バイト: 送信元ポート番号
-    unsigned int to_port;        // 4バイト: 宛先ポート番号
-    unsigned short year;         // 2バイト: 年
-    unsigned char month;         // 1バイト: 月
-    unsigned char day;           // 1バイト: 日
-    unsigned char hour;          // 1バイト: 時
-    unsigned char minute;        // 1バイト: 分
-    unsigned char second;        // 1バイト: 秒
-    unsigned char millisecond;   // 1バイト: 10ミリ秒
-    unsigned char from_ip[16];   // 16バイト: 送信元IPアドレス
-    unsigned char to_ip[16];     // 16バイト: 宛先IPアドレス
-    char from_user[255];         // 255バイト: 送信元ユーザ名
-    char padding1;               // 1バイト: パディング（メモリアラインメントのため）
-    char to_user[255];           // 255バイト: 宛先ユーザ名
-    char padding2;               // 1バイト: パディング（メモリアラインメントのため）
-    char message[16384];         // 16384バイト: メッセージ
-    char command[64];            // 64バイト: コマンド
+    unsigned int sequence;              // シーケンス番号
+    unsigned int from_port;             // 送信元ポート番号
+    unsigned int to_port;               // 宛先ポート番号
+    unsigned short year;                // 年
+    unsigned char month;                // 月
+    unsigned char day;                  // 日
+    unsigned char hour;                 // 時
+    unsigned char minute;               // 分
+    unsigned char second;               // 秒
+    unsigned char millisecond;          // 10ミリ秒
+    unsigned char from_ip[MAX_IP_SIZE]; // 送信元IPアドレス
+    unsigned char to_ip[MAX_IP_SIZE];   // 宛先IPアドレス
+    char from_user[MAX_USERNAME_SIZE];  // 送信元ユーザ名
+    char to_user[MAX_USERNAME_SIZE];    // 宛先ユーザ名
+    char message[MAX_MESSAGE_SIZE];     // メッセージ
+    char command[MAX_COMMAND_SIZE];     // コマンド
 } ChatMessage;
 ```
 
-#### ユーザーリストファイル
-
-- **ファイル名**: `user_list.txt`
-- **フォーマット**:
-    - 各ユーザーは一行に記録され、次のフォーマットを使用する。
-    ```
-    [ユーザー名],[IPアドレス],[ポート番号]
-    ```
-- **例**:
-    ```
-    john_doe,192.168.1.2,50001
-    jane_doe,192.168.1.3,50002
-    ```
 #### メッセージ履歴ファイル
 
 - **ファイル名**: `chat_history.txt`
