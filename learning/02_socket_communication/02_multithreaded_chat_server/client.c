@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
     ChatMessage message;
     int send_size, recv_size;
     int length;
+    char username[MAX_USERNAME_LENGTH];
 
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <IP address> <Port>\n", argv[0]);
@@ -79,11 +80,16 @@ int main(int argc, char *argv[])
     }
 
     printf("%s", message.message);
+    strncpy(username, message.from_user, sizeof(username) - 1);
+    username[strlen(username) - 1] = '\0';
 
     while (1) {
         FD_ZERO(&readfds);
         FD_SET(socket, &readfds);
         FD_SET(STDIN_FILENO, &readfds);
+
+        printf("[%s] > ", username);
+        fflush(stdout);
 
         int activity = select(socket + 1, &readfds, NULL, NULL, NULL);
         if ((activity < 0) && (errno != EINTR)) {
@@ -92,7 +98,6 @@ int main(int argc, char *argv[])
         }
 
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-            //printf("Please enter the characters:");
             length = get_line(message.message, sizeof(message.message));
             if (length == 0) {
                 break;
