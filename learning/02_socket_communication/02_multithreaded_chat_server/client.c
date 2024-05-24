@@ -212,8 +212,7 @@ int main(int argc, char *argv[])
     // サーバーからの認証応答を受信
     recv_size = recv_data(socket, &message, sizeof(ChatMessage));
     if (recv_size <= 0 || strncmp(message.command, "auth_ok", 7) != 0) {
-        fprintf(stderr, "Authentication failed");
-        fprintf(stderr, "%s", message.text);
+        fprintf(stderr, "Authentication failed: %s", message.text);
         close(socket);
         exit(EXIT_FAILURE);
     }
