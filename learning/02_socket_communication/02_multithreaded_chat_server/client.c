@@ -39,6 +39,9 @@ void receive_history(int socket)
             printf("%s", message.text);
         } else if (strncmp(message.command, "history_end", 12) == 0) {
             break;
+        } else if (strncmp(message.command, "error", 6) == 0) {
+            fprintf(stderr, "%s", message.text);
+            break;
         } else {
             break;
         }
@@ -100,6 +103,77 @@ int receive_message(int socket)
     return RET_OK;
 }
 
+void handle_history_command(int socket, const char *username)
+{
+    int send_size = send_chat_message(socket, "history", username, NULL, NULL);
+    if (send_size < 0) {
+        clear_line();
+        perror("send() failed");
+        return;
+    }
+    receive_history(socket);
+}
+
+void handle_list_command(int socket, const char *username)
+{
+    ChatMessage message;
+    memset(&message, 0, sizeof(ChatMessage));
+    int send_size = send_chat_message(socket, "list", username, NULL, NULL);
+    if (send_size < 0) {
+        clear_line();
+        perror("send() failed");
+        return;
+    }
+    int recv_size = recv_data(socket, &message, sizeof(ChatMessage));
+    if (recv_size < 0) {
+        clear_line();
+        perror("recv() failed");
+    } else if (recv_size == 0) {
+        clear_line();
+        printf("Connection closed\n");
+    } else {
+        printf("%s", message.text);
+    }
+}
+
+void handle_quit_command(int socket, const char *username)
+{
+    int send_size = send_chat_message(socket, "quit", username, NULL, NULL);
+    if (send_size < 0) {
+        clear_line();
+        perror("send() failed");
+        return;
+    }
+    printf("Goodbye!\n");
+}
+
+void handle_msg_command(int socket, const char *username, const char *buffer)
+{
+    char text[MAX_BUFFER_SIZE];
+    char to_user[MAX_USERNAME_LENGTH];
+    sscanf(buffer, "/msg %s %[^n]", to_user, text);
+    int send_size = send_chat_message(socket, "private", username, to_user, text);
+    if (send_size < 0) {
+        clear_line();
+        perror("send() failed");
+    } else {
+        printf("Send: <%s> to <%s>: %s", username, to_user, text);
+    }
+}
+
+void handle_regular_message(int socket, const char *username, const char *buffer)
+{
+    int send_size = send_chat_message(socket, "message", username, NULL, buffer);
+    if (send_size < 0) {
+        clear_line();
+        perror("send() failed");
+    } else if (send_size == 0) {
+        clear_line();
+        printf("Connection closed\n");
+    } else {
+        printf("Send: %s", buffer);
+    }
+}
 int main(int argc, char *argv[])
 {
     int socket;
@@ -138,8 +212,8 @@ int main(int argc, char *argv[])
     // サーバーからの認証応答を受信
     recv_size = recv_data(socket, &message, sizeof(ChatMessage));
     if (recv_size <= 0 || strncmp(message.command, "auth_ok", 7) != 0) {
-        perror("Authentication failed");
-        perror(message.text);
+        fprintf(stderr, "Authentication failed");
+        fprintf(stderr, "%s", message.text);
         close(socket);
         exit(EXIT_FAILURE);
     }
@@ -168,70 +242,17 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            if (strncmp(buffer, "/history", 8) == 0) {
-                send_size = send_chat_message(socket, "history", username, NULL, NULL);
-                if (send_size < 0) {
-                    clear_line();
-                    perror("send() failed");
-                    break;
-                }
-
-                receive_history(socket);
+           if (strncmp(buffer, "/history", 8) == 0) {
+                handle_history_command(socket, username);
             } else if (strncmp(buffer, "/list", 5) == 0) {
-                send_size = send_chat_message(socket, "list", username, NULL, NULL); 
-                if (send_size < 0) {
-                    clear_line();
-                    perror("send() failed");
-                    break;
-                }
-
-                memset(&message, 0, sizeof(ChatMessage));
-                recv_size = recv_data(socket, &message, sizeof(ChatMessage));
-                if (recv_size < 0) {
-                    clear_line();
-                    perror("recv() failed");
-                    break;
-                } else if (recv_size == 0) {
-                    clear_line();
-                    printf("Connection closed\n");
-                    break;
-                } else {
-                    printf("%s", message.text);
-                }
+                handle_list_command(socket, username);
             } else if (strncmp(buffer, "/quit", 5) == 0) {
-                send_size = send_chat_message(socket, "quit", username, NULL, NULL);
-                if (send_size < 0) {
-                    clear_line();
-                    perror("send() failed");
-                    break;
-                }
-                printf("Goodbye!\n");
+                handle_quit_command(socket, username);
                 break;
             } else if (strncmp(buffer, "/msg", 4) == 0) {
-                char text[MAX_BUFFER_SIZE];
-                char to_user[MAX_USERNAME_LENGTH];
-                sscanf(buffer, "/msg %s %[^n]", to_user, text);
-                send_size = send_chat_message(socket, "private", username, to_user, text);
-                if (send_size < 0) {
-                    clear_line();
-                    perror("send() failed");
-                    break;
-                } else {
-                    printf("Send: <%s> to <%s>: %s", username, to_user, text);
-                }
+                handle_msg_command(socket, username, buffer);
             } else {
-                send_size = send_chat_message(socket, "message", username, NULL, buffer); 
-                if (send_size < 0) {
-                    clear_line();
-                    perror("send() failed");
-                    break;
-                } else if (send_size == 0) {
-                    clear_line();
-                    printf("Connection closed\n");
-                    break;
-                } else {
-                    printf("Send: %s", buffer);
-                }
+                handle_regular_message(socket, username, buffer);
             }
         }
 
