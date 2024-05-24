@@ -137,10 +137,22 @@ void write_message_to_history(const ChatMessage *message)
         return;
     }
 
-    fprintf(file, "[%04d-%02d-%02d %02d:%02d:%02d] <%s>: %s",
-        message->year, message->month, message->day,
-        message->hour, message->minute, message->second,
-        message->from_user, message->text);
+    if (strcmp(message->command, "message") == 0) {
+        fprintf(file, "[%04d-%02d-%02d %02d:%02d:%02d] <%s>: message: %s",
+                message->year, message->month, message->day,
+                message->hour, message->minute, message->second,
+                message->from_user, message->text);
+    } else if (strcmp(message->command, "private") == 0) {
+        fprintf(file, "[%04d-%02d-%02d %02d:%02d:%02d] [Private] <%s> to <%s>: %s",
+                message->year, message->month, message->day,
+                message->hour, message->minute, message->second,
+                message->from_user, message->to_user, message->text);
+    } else if (strcmp(message->command, "info") == 0) {
+        fprintf(file, "[%04d-%02d-%02d %02d:%02d:%02d] %s",
+                message->year, message->month, message->day,
+                message->hour, message->minute, message->second,
+                message->text);
+    }
     
     fclose(file);
     pthread_mutex_unlock(&chat_history_mutex);
@@ -236,6 +248,7 @@ void *handle_client(void *arg)
 
     strcpy(message.command, "info");
     sprintf(message.text, "%s logined in\n", username);
+    write_message_to_history(&message);
     broadcast_message(&message, client_socket);
 
     // メインループでメッセージの送受信を処理
@@ -253,6 +266,7 @@ void *handle_client(void *arg)
         } else if (command == COMMAND_HISTORY) {
             send_message_history(client_socket);
         } else if (command == COMMAND_PRIVATE) {
+            write_message_to_history(&message);
             send_private_message(&message);
         } else if (command != COMMAND_NONE) {
             write_message_to_history(&message);
@@ -266,6 +280,7 @@ void *handle_client(void *arg)
     
     strcpy(message.command, "info");
     sprintf(message.text, "%s logout\n", message.from_user);
+    write_message_to_history(&message);
     broadcast_message(&message, client_socket);
 
     // ユーザーリストから削除

@@ -73,6 +73,33 @@ int send_chat_message(int sock, const char *command, const char *from_user, cons
     return send_data(sock, &message, sizeof(ChatMessage));
 }
 
+int receive_message(int socket)
+{
+    ChatMessage message;
+    
+    int recv_size = recv_data(socket, &message, sizeof(ChatMessage));
+    if (recv_size < 0) {
+        clear_line();
+        perror("recv_data() failed");
+        return RET_NG;
+    } else if (recv_size == 0) {
+        clear_line();
+        printf("Connection closed\n");
+        return RET_NG;
+    } else {
+        clear_line();
+        if (strncmp(message.command, "message", 7) == 0) {
+            printf("[%02d:%02d:%02d] <%s>: %s", message.hour, message.minute, message.second, message.from_user, message.text);
+        } else if (strncmp(message.command, "private", 7) == 0) {
+            printf("[%02d:%02d:%02d] [Private] <%s> to <%s>: %s", message.hour, message.minute, message.second, message.from_user, message.to_user, message.text);
+        } else if (strncmp(message.command, "info", 4) == 0 || strncmp(message.command, "error", 5) == 0) {
+            printf("[%02d:%02d:%02d] %s", message.hour, message.minute, message.second, message.text);
+        }
+    }
+
+    return RET_OK;
+}
+
 int main(int argc, char *argv[])
 {
     int socket;
@@ -190,7 +217,7 @@ int main(int argc, char *argv[])
                     perror("send() failed");
                     break;
                 } else {
-                    printf("Send: %s", text);
+                    printf("Send: <%s> to <%s>: %s", username, to_user, text);
                 }
             } else {
                 send_size = send_chat_message(socket, "message", username, NULL, buffer); 
@@ -209,23 +236,8 @@ int main(int argc, char *argv[])
         }
 
         if (FD_ISSET(socket, &readfds)) {
-            memset(&message, 0, sizeof(ChatMessage));
-            recv_size = recv_data(socket, &message, sizeof(ChatMessage));
-            if (recv_size < 0) {
-                clear_line();
-                perror("recv() failed");
+            if (receive_message(socket) != RET_OK) {
                 break;
-            } else if (recv_size == 0) {
-                clear_line();
-                printf("Connection closed\n");
-                break;
-            } else {
-                clear_line();
-                if (strncmp(message.command, "info", 5) == 0 || strncmp(message.command, "error", 6) == 0) {
-                    printf("%s", message.text);
-                } else {
-                    printf("Receive: <%s>: %s", message.from_user, message.text);
-                }
             }
         }
     }
