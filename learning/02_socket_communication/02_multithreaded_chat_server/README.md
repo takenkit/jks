@@ -92,9 +92,8 @@ typedef struct {
 
 - **チャット履歴の表示**
     ```
-    [john_doe] > /history
     [10:05:30] <john_doe>: Hello everyone!
-    [10:05:45] <jane_doe>: Hi John!
+    [10:05:45] [Private] <jane_doe> to <john_doe>: Hi John!
     ```
 
 - **プライベートメッセージ送信**
