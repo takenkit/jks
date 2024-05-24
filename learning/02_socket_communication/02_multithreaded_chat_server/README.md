@@ -11,22 +11,22 @@
 
 ```c
 typedef struct {
-    unsigned int sequence;              // シーケンス番号
-    unsigned int from_port;             // 送信元ポート番号
-    unsigned int to_port;               // 宛先ポート番号
-    unsigned short year;                // 年
-    unsigned char month;                // 月
-    unsigned char day;                  // 日
-    unsigned char hour;                 // 時
-    unsigned char minute;               // 分
-    unsigned char second;               // 秒
-    unsigned char millisecond;          // 10ミリ秒
-    unsigned char from_ip[MAX_IP_SIZE]; // 送信元IPアドレス
-    unsigned char to_ip[MAX_IP_SIZE];   // 宛先IPアドレス
-    char from_user[MAX_USERNAME_SIZE];  // 送信元ユーザ名
-    char to_user[MAX_USERNAME_SIZE];    // 宛先ユーザ名
-    char message[MAX_MESSAGE_SIZE];     // メッセージ
-    char command[MAX_COMMAND_SIZE];     // コマンド
+    unsigned int sequence;                  // シーケンス番号
+    unsigned int from_port;                 // 送信元ポート番号
+    unsigned int to_port;                   // 宛先ポート番号
+    unsigned short year;                    // 年
+    unsigned char month;                    // 月
+    unsigned char day;                      // 日
+    unsigned char hour;                     // 時
+    unsigned char minute;                   // 分
+    unsigned char second;                   // 秒
+    unsigned char millisecond;              // 10ミリ秒
+    unsigned char from_ip[MAX_IP_LENGTH];   // 送信元IPアドレス
+    unsigned char to_ip[MAX_IP_LENGTH];     // 宛先IPアドレス
+    char from_user[MAX_USERNAME_LENGTH];    // 送信元ユーザ名
+    char to_user[MAX_USERNAME_LENGTH];      // 宛先ユーザ名
+    char text[MAX_MESSAGE_LENGTH];          // メッセージ本文
+    char command[MAX_COMMAND_LENGTH];       // コマンド
 } ChatMessage;
 ```
 

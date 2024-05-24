@@ -43,14 +43,26 @@ void broadcast_message(const ChatMessage *message, int sender_socket)
 
 int parse_command(const char *input)
 {
-    if (strncmp(input, "/quit", 5) == 0) {
+    if (strncmp(input, "quit", 5) == 0) {
         return COMMAND_QUIT;
-    } else if (strncmp(input, "/list", 5) == 0) {
+    } else if (strncmp(input, "list", 5) == 0) {
         return COMMAND_LIST;
-    } else if (strncmp(input, "/history", 8) == 0) {
+    } else if (strncmp(input, "history", 8) == 0) {
         return COMMAND_HISTORY;
-    } else if (strncmp(input, "/msg", 4) == 0) {
+    } else if (strncmp(input, "history_end", 12) == 0) {
+        return COMMAND_HISTORY_END;
+    } else if (strncmp(input, "message", 8) == 0) {
         return COMMAND_MESSAGE;
+    } else if (strncmp(input, "private", 8) == 0) {
+        return COMMAND_PRIVATE;
+    } else if (strncmp(input, "auth", 5) == 0) {
+        return COMMAND_AUTH;
+    } else if (strncmp(input, "auth_ok", 8) == 0) {
+        return COMMAND_AUTH_OK;
+    } else if (strncmp(input, "info", 5) == 0) {
+        return COMMAND_INFO;
+    } else if (strncmp(input, "error", 6) == 0) {
+        return COMMAND_ERROR;
     } else {
         return COMMAND_NONE;
     }
@@ -102,12 +114,12 @@ void send_user_list(int client_socket)
     strcpy(message.command, "list");
 
     pthread_mutex_lock(&user_list_mutex);
-    strcpy(message.message, "Connected users:\n");
+    strcpy(message.text, "Connected users:\n");
     for (int i = 0; i < MAX_CLIENTS; ++i) {
         if (connected_users[i][0] != '\0') {
-            strcat(message.message, "- ");
-            strcat(message.message, connected_users[i]);
-            strcat(message.message, "\n");
+            strcat(message.text, "- ");
+            strcat(message.text, connected_users[i]);
+            strcat(message.text, "\n");
         }
     }
     pthread_mutex_unlock(&user_list_mutex);
@@ -125,10 +137,10 @@ void write_message_to_history(const ChatMessage *message)
         return;
     }
 
-    fprintf(file, "[%04d-%02d-%02d %02d:%02d:%02d] %s: %s\n",
+    fprintf(file, "[%04d-%02d-%02d %02d:%02d:%02d] <%s>: %s",
         message->year, message->month, message->day,
         message->hour, message->minute, message->second,
-        message->from_user, message->message);
+        message->from_user, message->text);
     
     fclose(file);
     pthread_mutex_unlock(&chat_history_mutex);
@@ -142,8 +154,8 @@ void send_message_history(int client_socket)
         perror("fopen() failed");
         ChatMessage message;
         memset(&message, 0, sizeof(ChatMessage));
-        strcpy(message.command, "history");
-        strcpy(message.message, "Failed to open history file\n");
+        strcpy(message.command, "error");
+        strcpy(message.text, "Failed to open history file\n");
         send_data(client_socket, &message, sizeof(ChatMessage));
         pthread_mutex_unlock(&chat_history_mutex);
         return;
@@ -155,19 +167,36 @@ void send_message_history(int client_socket)
 
     char buffer[MAX_BUFFER_SIZE];
     while (fgets(buffer, sizeof(buffer), file) != NULL) {
-        strcat(message.message, buffer);
-        if (strlen(message.message) + sizeof(buffer) > sizeof(message.message)) {
+        strcat(message.text, buffer);
+        if (strlen(message.text) + sizeof(buffer) > sizeof(message.text)) {
             send_data(client_socket, &message, sizeof(ChatMessage));
-            memset(message.message, 0, sizeof(message.message));
+            memset(message.text, 0, sizeof(message.text));
         }
     }
 
-    if (strlen(message.message) > 0) {
+    if (strlen(message.text) > 0) {
         send_data(client_socket, &message, sizeof(ChatMessage));
     }
 
+    // 履歴データの終了を示すメッセージを送信
+    memset(&message, 0, sizeof(ChatMessage));
+    strcpy(message.command, "history_end");
+    send_data(client_socket, &message, sizeof(ChatMessage));
+
     fclose(file);
     pthread_mutex_unlock(&chat_history_mutex);
+}
+
+void send_private_message(const ChatMessage *message)
+{
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
+        if (strcmp(connected_users[i], message->to_user) == 0) {
+            send_data(client_sockets[i], message, sizeof(ChatMessage));
+            break;
+        }
+    }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 void *handle_client(void *arg)
@@ -187,12 +216,11 @@ void *handle_client(void *arg)
         return NULL;
     }
     strncpy(username, message.from_user, sizeof(username) - 1);
-    username[strlen(username)- 1] = '\0';
 
     // ユーザー名の重複チェック
     if (is_username_duplicate(username)) {
         strcpy(message.command, "error");
-        strcpy(message.message, "Username already taken. Please choose another one.\n");
+        strcpy(message.text, "Username already taken. Please choose another one.\n");
         send_data(client_socket, &message, sizeof(ChatMessage));
         close(client_socket);
         return NULL;
@@ -203,8 +231,12 @@ void *handle_client(void *arg)
 
     // 認証成功メッセージの送信
     strcpy(message.command, "auth_ok");
-    sprintf(message.message, "Hello %s!\n", username);
+    sprintf(message.text, "Hello %s!\n", username);
     send_data(client_socket, &message, sizeof(ChatMessage));
+
+    strcpy(message.command, "info");
+    sprintf(message.text, "%s logined in\n", username);
+    broadcast_message(&message, client_socket);
 
     // メインループでメッセージの送受信を処理
     while ((recv_size = recv_data(client_socket, &message, sizeof(ChatMessage))) > 0) {
@@ -220,7 +252,9 @@ void *handle_client(void *arg)
             send_user_list(client_socket);
         } else if (command == COMMAND_HISTORY) {
             send_message_history(client_socket);
-        } else {
+        } else if (command == COMMAND_PRIVATE) {
+            send_private_message(&message);
+        } else if (command != COMMAND_NONE) {
             write_message_to_history(&message);
             broadcast_message(&message, client_socket);
         }
@@ -228,9 +262,11 @@ void *handle_client(void *arg)
 
     if (recv_size < 0) {
         perror("recv_data() error");
-    } else if (recv_size == 0) {
-        printf("client disconnected\n");
     }
+    
+    strcpy(message.command, "info");
+    sprintf(message.text, "%s logout\n", message.from_user);
+    broadcast_message(&message, client_socket);
 
     // ユーザーリストから削除
     remove_user_from_list(username);
