@@ -2,7 +2,7 @@
 
 // メモリブロックの構造体
 typedef struct MemoryBlock {
-    struct  MemoryBlock* next;
+    struct MemoryBlock* next;
 } MemoryBlock;
 
 // メモリプールの構造体
